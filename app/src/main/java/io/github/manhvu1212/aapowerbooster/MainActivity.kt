@@ -258,6 +258,8 @@ fun CompanionScreen(bleManager: BleManager) {
             }
         }
 
+        ModeControlCard(bleManager)
+
         Spacer(modifier = Modifier.height(16.dp))
 
         // Scanner Section
@@ -353,6 +355,127 @@ fun CompanionScreen(bleManager: BleManager) {
 
         Spacer(modifier = Modifier.height(12.dp))
         RawLogCard(bleManager)
+    }
+}
+
+@Composable
+fun ModeControlCard(bleManager: BleManager) {
+    val connectionState by bleManager.connectionState.collectAsState()
+    val activeMode by bleManager.activeMode.collectAsState()
+    val activeLevel by bleManager.activeLevel.collectAsState()
+
+    // Only show controls while connected (sending commands otherwise has no effect)
+    if (connectionState != BleManager.ConnectionState.CONNECTED) return
+
+    // Modes in display order: Race - Sport - Normal - City - Eco
+    val modes = listOf(
+        1 to "Race",
+        2 to "Sport",
+        4 to "Normal",
+        3 to "City",
+        5 to "Eco"
+    )
+    val isNormal = activeMode == 4
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF26263B))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Chọn chế độ lái",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = Color.White
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            modes.chunked(3).forEach { rowModes ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    rowModes.forEach { (id, name) ->
+                        val isActive = activeMode == id
+                        Button(
+                            onClick = {
+                                val lvl = if (id == 4) 0 else (if (activeLevel == 0) 5 else activeLevel)
+                                bleManager.setMode(id, lvl)
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isActive) Color(0xFF00FFCC) else Color(0xFF161622),
+                                contentColor = if (isActive) Color.Black else Color.White
+                            )
+                        ) {
+                            Text(
+                                text = name,
+                                fontSize = 13.sp,
+                                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+                    // Keep button widths aligned when the last row is not full
+                    repeat(3 - rowModes.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+            HorizontalDivider(color = Color.Gray.copy(alpha = 0.3f))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = "Cấp độ nhạy", color = Color.White, fontSize = 15.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(
+                        onClick = {
+                            val newLevel = (activeLevel - 1).coerceAtLeast(1)
+                            bleManager.setMode(activeMode, newLevel)
+                        },
+                        enabled = !isNormal,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF00FFCC))
+                    ) {
+                        Text(text = "−", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Text(
+                        text = if (isNormal) "—" else "$activeLevel",
+                        modifier = Modifier.widthIn(min = 48.dp),
+                        textAlign = TextAlign.Center,
+                        color = Color(0xFF00FFCC),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    OutlinedButton(
+                        onClick = {
+                            val newLevel = (activeLevel + 1).coerceAtMost(9)
+                            bleManager.setMode(activeMode, newLevel)
+                        },
+                        enabled = !isNormal,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF00FFCC))
+                    ) {
+                        Text(text = "+", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            if (isNormal) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Chế độ Normal (zin) không chỉnh cấp độ.",
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+            }
+        }
     }
 }
 
