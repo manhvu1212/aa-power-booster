@@ -4,6 +4,7 @@ import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.constraints.ConstraintManager
 import androidx.car.app.model.*
+import androidx.core.graphics.drawable.IconCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.*
@@ -139,11 +140,19 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
 
         // Level +/- live in the ActionStrip (not the grid) so the grid stays at 5 mode tiles —
         // safely under every head unit's grid item limit (guaranteed minimum 6). The active mode's
-        // current level is shown on its grid tile. Kept to 2 actions to satisfy ActionStrip limits.
+        // current level is shown on its grid tile.
+        // NOTE: an ActionStrip allows at most ONE action with a custom title, so use ICONS here
+        // (icon-only actions do not count as custom titles).
+        val minusIcon = CarIcon.Builder(
+            IconCompat.createWithResource(carContext, R.drawable.ic_minus)
+        ).build()
+        val plusIcon = CarIcon.Builder(
+            IconCompat.createWithResource(carContext, R.drawable.ic_plus)
+        ).build()
         val actionStrip = ActionStrip.Builder()
             .addAction(
                 Action.Builder()
-                    .setTitle("Cấp -")
+                    .setIcon(minusIcon)
                     .setOnClickListener {
                         if (connectionState == BleManager.ConnectionState.CONNECTED && activeMode != 4) {
                             val newLevel = (activeLevel - 1).coerceAtLeast(1)
@@ -154,7 +163,7 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
             )
             .addAction(
                 Action.Builder()
-                    .setTitle("Cấp +")
+                    .setIcon(plusIcon)
                     .setOnClickListener {
                         if (connectionState == BleManager.ConnectionState.CONNECTED && activeMode != 4) {
                             val newLevel = (activeLevel + 1).coerceAtMost(9)
