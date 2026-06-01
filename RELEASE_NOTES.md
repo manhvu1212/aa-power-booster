@@ -1,27 +1,29 @@
-# Bản ghi phát hành (Release Notes) - AA Power Booster v1.0.3
+# Bản ghi phát hành (Release Notes) - AA Power Booster v1.0.6
 
 ## 1. Bản ngắn gọn (Dùng để nhập trên Google Play Console - Dưới 500 ký tự)
 ```text
-Bản phát hành AA Power Booster v1.0.3 (io.github.manhvu1212.aapowerbooster):
-- Sửa lỗi đồng bộ dữ liệu hiển thị chế độ thực tế từ cảm biến chân ga.
-- Giới hạn bộ lọc dò quét Bluetooth chỉ hiển thị thiết bị hỗ trợ (JDY).
-- Hỗ trợ Android Auto giúp chỉnh chân ga an toàn trên màn hình xe.
-- 5 chế độ lái theo thứ tự tối ưu: Race - Sport - Normal - City - Eco.
-- Tăng/Giảm độ nhạy (cấp 1-9) và chèn logo "AA" nhận diện thương hiệu.
+Bản phát hành AA Power Booster v1.0.6 (io.github.manhvu1212.aapowerbooster):
+- Khắc phục lỗi văng ứng dụng trên Android Auto: tối ưu giao diện còn 5 ô chế độ, chuyển nút tăng/giảm cấp xuống thanh hành động.
+- Hiển thị đúng cấp độ của từng chế độ (trước đây bị kẹt ở một giá trị).
+- Tự đồng bộ lại trạng thái chân ga sau mỗi lần đổi chế độ.
+- Cải thiện cơ chế ghi nhận lỗi để hỗ trợ chẩn đoán.
 ```
 
 ---
 
 ## 2. Bản chi tiết (Changelog & Hướng dẫn kỹ thuật)
 
-### Các tính năng chính:
-* **Tương thích Android Auto (IoT Category):** Cho phép điều khiển bộ điều tốc chân ga trực tiếp trên màn hình ô tô bằng giao diện tối giản, an toàn khi lái xe.
-* **5 Chế độ lái trực quan:** Các phím chế độ được sắp xếp theo đúng thứ tự yêu cầu: **Race - Sport - Normal - City - Eco**.
-* **Phím cộng/trừ tăng giảm cấp độ:** Hỗ trợ tăng giảm cấp độ nhạy (Level 1..9) cho các chế độ (trừ Normal).
-* **Đồng bộ hóa thời gian thực (Real-time Sync):** Tự động gửi lệnh `getData` khi kết nối và lắng nghe Bluetooth notification để đồng bộ trạng thái hiển thị với phím vật lý trên xe hoặc app gốc.
-* **Tránh xung đột kết nối:** Hiển thị rõ trạng thái kết nối/thiết bị bận và hỗ trợ nút ngắt kết nối nhanh trên điện thoại để trả quyền cho app gốc.
+### Các cập nhật trong phiên bản 1.0.6:
 
-### Các cập nhật mới nhất (Phiên bản 1.0.3):
-1. **Sửa lỗi đồng bộ dữ liệu chân ga (BLE Parsing Fix):** Sửa lỗi hoán đổi thứ tự byte trong gói tin phản hồi của Bluetooth Notification (Little-Endian parser), giúp hiển thị chính xác chế độ và cấp độ ga thực tế của cảm biến lên màn hình xe.
-2. **Cải tiến dò quét Bluetooth (Scan Filter):** Cập nhật bộ quét BLE chỉ hiển thị các thiết bị có chứa từ khóa `"JDY"` (bộ điều khiển chân ga được hỗ trợ), loại bỏ các thiết bị Bluetooth không liên quan.
-3. **Ký số tự động và Logo "AA":** Đã tích hợp chữ ký số và đóng dấu "AA" ở góc logo để nhận diện dễ dàng.
+1. **Khắc phục văng ứng dụng trên Android Auto (điểm chính):**
+   * Nhiều đầu màn hình ô tô giới hạn số ô trên giao diện lưới (thường là 6). Phiên bản cũ hiển thị 7 ô (5 chế độ + 2 nút tăng/giảm cấp) nên có thể bị host từ chối và văng app.
+   * Nay **2 nút tăng/giảm cấp được chuyển xuống thanh hành động (ActionStrip)**, lưới chỉ còn **5 ô chế độ** — nằm an toàn trong giới hạn của mọi đầu màn hình. Cấp độ hiện tại được hiển thị ngay trên ô của chế độ đang chọn.
+
+2. **Hiển thị đúng cấp độ từng chế độ (Level Sync Fix):**
+   * Gói tin trạng thái từ thiết bị chứa cấp độ đã lưu của tất cả chế độ xếp tuần tự; app nay đọc đúng ô tương ứng với chế độ đang chọn nên cấp độ hiển thị chính xác, không còn bị kẹt ở một giá trị.
+
+3. **Tự đồng bộ lại sau khi đổi chế độ (Auto Re-sync):**
+   * Sau mỗi lệnh đổi chế độ/cấp độ, app tự lấy lại trạng thái đầy đủ từ thiết bị để giao diện luôn đúng thực tế.
+
+4. **Cải thiện chẩn đoán & ghi nhận lỗi (Diagnostics):**
+   * Ghi nhật ký lỗi và "vết chân" tiến trình của giao diện Android Auto một cách an toàn (ghi đồng bộ), giúp xác định nguyên nhân sự cố ngay trên app điện thoại mà không cần công cụ ngoài.

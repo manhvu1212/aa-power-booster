@@ -15,7 +15,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +26,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -134,6 +141,8 @@ fun CompanionScreen(bleManager: BleManager) {
         )
 
         Spacer(modifier = Modifier.height(24.dp))
+
+        CrashLogCard()
 
         // Connection Card
         Card(
@@ -338,6 +347,143 @@ fun CompanionScreen(bleManager: BleManager) {
                         )
                     }
                     HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f))
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        RawLogCard(bleManager)
+    }
+}
+
+@Composable
+fun CrashLogCard() {
+    val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    var status by remember { mutableStateOf(PowerBoosterApp.getStatus(context)) }
+    var crash by remember { mutableStateOf(PowerBoosterApp.getCrash(context)) }
+
+    if (status == null && crash == null) return
+
+    val combined = buildString {
+        if (status != null) {
+            append("== Trạng thái Android Auto (chạy tới đâu) ==\n")
+            append(status)
+            append("\n")
+        }
+        if (crash != null) {
+            if (isNotEmpty()) append("\n")
+            append("== Crash ==\n")
+            append(crash)
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF3B1A1A))
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "⚠ Chẩn đoán Android Auto",
+                    color = Color(0xFFFF6B6B),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+                Row {
+                    TextButton(onClick = { clipboard.setText(AnnotatedString(combined)) }) {
+                        Text("Copy", color = Color(0xFF00FFCC))
+                    }
+                    TextButton(onClick = {
+                        PowerBoosterApp.clearCrash(context)
+                        status = null
+                        crash = null
+                    }) {
+                        Text("Xóa", color = Color.White)
+                    }
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF1A0D0D))
+                    .padding(8.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                SelectionContainer {
+                    Text(
+                        text = combined,
+                        color = Color(0xFFFFC2C2),
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RawLogCard(bleManager: BleManager) {
+    val rawLog by bleManager.rawLog.collectAsState()
+    val clipboard = LocalClipboardManager.current
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF161622))
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "RAW BLE Notify (debug)",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+                Row {
+                    TextButton(onClick = {
+                        clipboard.setText(AnnotatedString(rawLog.joinToString("\n")))
+                    }) {
+                        Text("Copy", color = Color(0xFF00FFCC))
+                    }
+                    TextButton(onClick = { bleManager.clearRawLog() }) {
+                        Text("Xóa", color = Color(0xFFFF3366))
+                    }
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(130.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF0F0F16))
+                    .padding(8.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                SelectionContainer {
+                    Text(
+                        text = if (rawLog.isEmpty())
+                            "Chưa có dữ liệu. Kết nối thiết bị rồi đổi chế độ/cấp độ để bắt gói tin."
+                        else
+                            rawLog.joinToString("\n"),
+                        color = Color(0xFF9CFFE9),
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
                 }
             }
         }
