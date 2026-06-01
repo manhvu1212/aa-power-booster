@@ -6,6 +6,7 @@ import androidx.car.app.Session
 
 class PowerBoosterSession : Session() {
     override fun onCreateScreen(intent: Intent): Screen {
+        PowerBoosterApp.saveStatus(carContext, "Session.onCreateScreen")
         return PowerBoosterScreen(carContext)
     }
 }

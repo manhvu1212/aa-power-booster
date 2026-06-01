@@ -114,6 +114,15 @@ fun CompanionScreen(bleManager: BleManager) {
     val savedAddress = bleManager.getSavedAddress()
     val savedName = bleManager.getSavedName()
 
+    val context = LocalContext.current
+    val versionName = remember {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "?"
+        } catch (e: Exception) {
+            "?"
+        }
+    }
+
     val gradientBrush = Brush.verticalGradient(
         colors = listOf(Color(0xFF1E1E2C), Color(0xFF0F0F16))
     )
@@ -134,7 +143,7 @@ fun CompanionScreen(bleManager: BleManager) {
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Companion Controller App",
+            text = "Companion Controller App • v$versionName",
             fontSize = 14.sp,
             color = Color.Gray,
             textAlign = TextAlign.Center
