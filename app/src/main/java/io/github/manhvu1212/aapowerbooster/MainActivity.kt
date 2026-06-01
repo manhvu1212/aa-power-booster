@@ -123,6 +123,8 @@ fun CompanionScreen(bleManager: BleManager) {
         modifier = Modifier
             .fillMaxSize()
             .background(gradientBrush)
+            // Keep content clear of the status bar, navigation bar and display cutout (notch)
+            .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
