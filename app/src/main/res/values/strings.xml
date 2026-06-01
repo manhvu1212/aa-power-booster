@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">AA Power Booster</string>
+    <string name="title_companion">AA Power Booster Companion</string>
+    <string name="scan_devices">Dò tìm thiết bị</string>
+    <string name="stop_scanning">Dừng quét</string>
+    <string name="select_device">Chọn thiết bị chân ga:</string>
+    <string name="no_device_saved">Chưa lưu thiết bị. Hãy quét và chọn bên dưới.</string>
+    <string name="saved_device">Thiết bị hoạt động: %1$s\nĐịa chỉ MAC: %2$s</string>
+    <string name="connected">Đã kết nối</string>
+    <string name="disconnected">Chưa kết nối / Thiết bị bận</string>
+    <string name="connecting">Đang kết nối...</string>
+    <string name="disconnect_btn">Ngắt kết nối BLE</string>
+    <string name="connect_btn">Kết nối</string>
+    <string name="bluetooth_disabled">Vui lòng bật Bluetooth trên điện thoại</string>
+    <string name="permissions_required">Ứng dụng cần cấp quyền Bluetooth &amp; Vị trí để quét thiết bị</string>
+</resources>
