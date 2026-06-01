@@ -131,9 +131,20 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
             )
         )
 
-        // Connectivity header status text
+        // Header shows the current mode + level when connected. (Android Auto's action strip is
+        // capped at 2 buttons, so the level number can't be a 3rd item literally between -/+;
+        // showing it in the title keeps it on the same top bar as the -/+ buttons.)
+        val modeName = when (activeMode) {
+            1 -> "Race"
+            2 -> "Sport"
+            3 -> "City"
+            4 -> "Normal"
+            5 -> "Eco"
+            else -> "?"
+        }
         val headerTitle = when (connectionState) {
-            BleManager.ConnectionState.CONNECTED -> "Đã kết nối chân ga"
+            BleManager.ConnectionState.CONNECTED ->
+                if (activeMode == 4) "$modeName (zin)" else "$modeName · Cấp $activeLevel"
             BleManager.ConnectionState.CONNECTING -> "Đang kết nối chân ga..."
             BleManager.ConnectionState.DISCONNECTED -> "Chưa kết nối chân ga / Thiết bị bận"
         }
@@ -231,8 +242,8 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
             .setImage(CarIcon.APP_ICON)
             .setOnClickListener {
                 if (connectionState == BleManager.ConnectionState.CONNECTED) {
-                    // Set to default level 5 if previous level was 0 (Normal mode)
-                    val lvl = if (modeId == 4) 0 else (if (activeLevel == 0) 5 else activeLevel)
+                    // Each mode keeps its own level; restore that mode's stored level.
+                    val lvl = if (modeId == 4) 0 else bleManager.levelForMode(modeId)
                     bleManager.setMode(modeId, lvl)
                 }
             }

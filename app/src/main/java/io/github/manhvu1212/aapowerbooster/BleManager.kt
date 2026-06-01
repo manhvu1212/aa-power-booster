@@ -32,11 +32,6 @@ class BleManager private constructor(context: Context) {
         private const val KEY_DEVICE_ADDRESS = "device_address"
         private const val KEY_DEVICE_NAME = "device_name"
 
-        // Separate prefs for the raw BLE debug log so it survives the AA -> phone switch
-        private const val RAW_PREFS = "raw_log_prefs"
-        private const val KEY_RAW = "raw_entries"
-        private const val MAX_RAW_ENTRIES = 40
-
         @Volatile
         private var instance: BleManager? = null
 
@@ -73,9 +68,16 @@ class BleManager private constructor(context: Context) {
     private val _activeLevel = MutableStateFlow(0) // Default level is 0
     val activeLevel: StateFlow<Int> = _activeLevel.asStateFlow()
 
-    // Raw BLE notify log (debug) - newest first, displayed & copyable on the phone companion screen
-    private val _rawLog = MutableStateFlow(loadRawLog())
-    val rawLog: StateFlow<List<String>> = _rawLog.asStateFlow()
+    // Per-mode stored levels parsed from the device's getData response (mode id -> level).
+    // 1=Race, 2=Sport, 3=City, 5=Eco. Normal (4) has no level.
+    private val _modeLevels = MutableStateFlow<Map<Int, Int>>(emptyMap())
+    val modeLevels: StateFlow<Map<Int, Int>> = _modeLevels.asStateFlow()
+
+    // Saved device (reactive) so the UI can hide the scanner once a device is remembered.
+    private val _savedDeviceAddress = MutableStateFlow(getSavedAddress())
+    val savedDeviceAddress: StateFlow<String?> = _savedDeviceAddress.asStateFlow()
+    private val _savedDeviceName = MutableStateFlow(getSavedName())
+    val savedDeviceName: StateFlow<String?> = _savedDeviceName.asStateFlow()
 
     // Scan States
     private val _scannedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
@@ -122,44 +124,22 @@ class BleManager private constructor(context: Context) {
             .putString(KEY_DEVICE_ADDRESS, device.address)
             .putString(KEY_DEVICE_NAME, getSafeName(device))
             .apply()
+        _savedDeviceAddress.value = device.address
+        _savedDeviceName.value = getSafeName(device)
     }
 
     fun clearSavedDevice() {
         val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().clear().apply()
+        _savedDeviceAddress.value = null
+        _savedDeviceName.value = null
     }
 
-    // ---- Raw BLE debug log helpers ----
-    private fun loadRawLog(): List<String> {
-        return try {
-            appContext.getSharedPreferences(RAW_PREFS, Context.MODE_PRIVATE)
-                .getString(KEY_RAW, "")
-                ?.split("\n")
-                ?.filter { it.isNotBlank() }
-                ?: emptyList()
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
-
-    private fun addRawEntry(entry: String) {
-        // Skip duplicate consecutive packets (device often re-sends the same status)
-        if (_rawLog.value.firstOrNull() == entry) return
-        val updated = (listOf(entry) + _rawLog.value).take(MAX_RAW_ENTRIES)
-        _rawLog.value = updated
-        try {
-            appContext.getSharedPreferences(RAW_PREFS, Context.MODE_PRIVATE)
-                .edit()
-                .putString(KEY_RAW, updated.joinToString("\n"))
-                .apply()
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to persist raw log", e)
-        }
-    }
-
-    fun clearRawLog() {
-        _rawLog.value = emptyList()
-        appContext.getSharedPreferences(RAW_PREFS, Context.MODE_PRIVATE).edit().clear().apply()
+    /** Stored level for a given mode (from the latest getData), or a sensible default of 5. */
+    fun levelForMode(mode: Int): Int {
+        if (mode == 4) return 0 // Normal has no level
+        val lvl = _modeLevels.value[mode] ?: 0
+        return if (lvl in 1..9) lvl else 5
     }
 
     // Scanning
@@ -330,15 +310,7 @@ class BleManager private constructor(context: Context) {
 
     // Parsing Device Data Responses
     private fun parseNotificationData(value: ByteArray) {
-        // Full raw packet as hex, recorded for the on-screen debug log so we can map the level byte.
-        // The getData response is a FULL status packet (value[3]..value[9] in the original Unity app),
-        // which is NOT the same layout as the setMode command (C0 F0 F1 mode level 00 C0).
-        val hex = value.joinToString(" ") { "%02X".format(it.toInt() and 0xFF) }
-
-        if (value.size < 5) {
-            addRawEntry("len=${value.size} [$hex]")
-            return
-        }
+        if (value.size < 5) return
 
         // Mode & Level Notify Packet checks:
         // bytes2Short2(new byte[]{value[1], value[2]}) == 61936 or -3600 (Hex: F1F0 in little-endian format)
@@ -346,28 +318,34 @@ class BleManager private constructor(context: Context) {
         val b1 = value[1].toInt() and 0xFF
         val b2 = value[2].toInt() and 0xFF
         val isModeData = b1 == 0xF0 && b2 == 0xF1
+        if (!isModeData) return
 
-        if (isModeData) {
-            val mode = value[3].toInt()
-            // The getData response carries the stored level of EVERY mode, laid out sequentially:
-            //   value[4]=Race(1), value[5]=Sport(2), value[6]=City(3), value[7]=Normal(4), value[8]=Eco(5)
-            // So the active mode's level is at value[3 + mode]. The previous code always read value[4]
-            // (the Race level), which is why the displayed level looked stuck (e.g. always 3).
-            val levelIndex = 3 + mode
-            val level = when {
-                mode == 4 -> 0 // Normal mode has no sensitivity level
-                mode in 1..5 && levelIndex < value.size -> value[levelIndex].toInt() and 0xFF
-                else -> 0
-            }
-            addRawEntry("m=$mode lv=$level [$hex]")
+        val mode = value[3].toInt()
 
-            // Only update if it belongs to our supported 5 modes (1 to 5)
-            if (mode in 1..5) {
-                _activeMode.value = mode
-                _activeLevel.value = level
-            }
-        } else {
-            addRawEntry("other [$hex]")
+        // The getData response carries the stored level of EVERY mode, laid out sequentially:
+        //   value[4]=Race(1), value[5]=Sport(2), value[6]=City(3), value[7]=Normal(4), value[8]=Eco(5)
+        // Capture every mode's level so switching modes can restore that mode's own level.
+        if (value.size >= 9) {
+            _modeLevels.value = mapOf(
+                1 to (value[4].toInt() and 0xFF),
+                2 to (value[5].toInt() and 0xFF),
+                3 to (value[6].toInt() and 0xFF),
+                5 to (value[8].toInt() and 0xFF)
+            )
+        }
+
+        // The active mode's level is the slot matching the current mode (value[3 + mode]).
+        val levelIndex = 3 + mode
+        val level = when {
+            mode == 4 -> 0 // Normal mode has no sensitivity level
+            mode in 1..5 && levelIndex < value.size -> value[levelIndex].toInt() and 0xFF
+            else -> 0
+        }
+
+        // Only update if it belongs to our supported 5 modes (1 to 5)
+        if (mode in 1..5) {
+            _activeMode.value = mode
+            _activeLevel.value = level
         }
     }
 
