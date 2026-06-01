@@ -47,6 +47,12 @@
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
 
+        <!-- Required by the Car App Library: minimum Car App API level the app supports.
+             value=1 = compatible with the widest range of Android Auto hosts. -->
+        <meta-data
+            android:name="androidx.car.app.minCarApiLevel"
+            android:value="1" />
+
     </application>
 
 </manifest>
