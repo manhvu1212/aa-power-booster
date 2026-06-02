@@ -1,22 +1,25 @@
-# Bản ghi phát hành (Release Notes) - AA Power Booster v2.0.2
+# Bản ghi phát hành (Release Notes) - AA Power Booster v2.0.3
 
 ## 1. Bản ngắn gọn (Dùng để nhập trên Google Play Console - Dưới 500 ký tự)
 ```text
-Bản phát hành AA Power Booster v2.0.2 (io.github.manhvu1212.aapowerbooster):
-- Sửa logo trên Android Auto bị viền trắng (nay nền đen tràn tròn).
-- Sắp xếp lại thứ tự chế độ: Race · Sport · City · Normal · Eco.
-- Hiển thị tên chế độ đang chọn; giao diện Android Auto dùng biểu tượng gọn gàng hơn.
+Bản phát hành AA Power Booster v2.0.3 (io.github.manhvu1212.aapowerbooster):
+- Android Auto: chế độ đang chọn có viền tròn bao quanh biểu tượng cho dễ nhận biết.
+- Giao diện Android Auto gọn hơn: bỏ dòng "Cấp x" dưới biểu tượng.
 ```
 
 ---
 
 ## 2. Bản chi tiết (Changelog & Hướng dẫn kỹ thuật)
 
-### Phiên bản 2.0.2:
-1. **Sửa logo trên Android Auto:** thêm biểu tượng thích ứng (adaptive icon) nền đen tràn toàn bộ vòng tròn, cánh đỏ ở giữa — không còn viền trắng quanh logo.
-2. **Đổi thứ tự chế độ:** City và Normal đổi vị trí; thứ tự thống nhất trên cả điện thoại lẫn Android Auto là **Race · Sport · City · Normal · Eco**.
-3. **Điện thoại:** hiển thị tên chế độ đang chọn ngay cạnh nhãn "Chọn chế độ lái".
-4. **Android Auto:** mỗi chế độ dùng đúng biểu tượng như trên điện thoại, bỏ chữ rườm rà cho gọn và hiện đại; chỉ ô đang chọn hiển thị cấp độ.
+### Phiên bản 2.0.3:
+1. **Android Auto - dấu hiệu chế độ đang chọn:** biểu tượng của chế độ đang chọn được bao quanh bởi một viền tròn (host tự tô màu theo theme xe), giúp nhận biết nhanh mà không cần chữ.
+2. **Android Auto - gọn hơn:** bỏ dòng "Cấp x" hiển thị dưới mỗi biểu tượng; cấp độ hiện tại vẫn hiển thị trên tiêu đề (ví dụ "Race · Cấp 3").
+
+### Đã có từ 2.0.2:
+- **Sửa logo trên Android Auto:** biểu tượng thích ứng (adaptive icon) nền đen tràn toàn bộ vòng tròn, cánh đỏ ở giữa — không còn viền trắng quanh logo.
+- **Đổi thứ tự chế độ:** thứ tự thống nhất trên cả điện thoại lẫn Android Auto là **Race · Sport · City · Normal · Eco**.
+- **Điện thoại:** hiển thị tên chế độ đang chọn ngay cạnh nhãn "Chọn chế độ lái".
+- **Android Auto:** mỗi chế độ dùng đúng biểu tượng như trên điện thoại.
 
 ### Đã có từ 2.0.1:
 - **Sửa lỗi hiển thị tràn viền:** nội dung trên app điện thoại không còn bị thanh trạng thái, phần tai thỏ (notch) hay thanh điều hướng che khuất; nền vẫn tràn viền hiện đại.

@@ -12,8 +12,8 @@ android {
         applicationId = "io.github.manhvu1212.aapowerbooster"
         minSdk = 26
         targetSdk = 35
-        versionCode = 14
-        versionName = "2.0.2"
+        versionCode = 15
+        versionName = "2.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

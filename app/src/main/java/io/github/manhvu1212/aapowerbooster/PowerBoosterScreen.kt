@@ -90,7 +90,9 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
             Triple(5, "Eco", R.drawable.ic_mode_eco)
         )
         val gridItemList = modes.map { (id, name, iconRes) ->
-            createModeGridItem(modeId = id, name = name, iconRes = iconRes, isActive = activeMode == id)
+            // The active mode shows a ringed variant of its icon so it stands out on the grid.
+            val res = if (activeMode == id) activeIconRes(id) else iconRes
+            createModeGridItem(modeId = id, name = name, iconRes = res)
         }.toMutableList()
 
         // Header shows the current mode + level when connected. (Android Auto's action strip is
@@ -190,15 +192,26 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
         return template
     }
 
-    private fun createModeGridItem(modeId: Int, name: String, iconRes: Int, isActive: Boolean): GridItem {
+    // Ringed icon variant used to mark the currently active mode on the grid.
+    private fun activeIconRes(modeId: Int): Int = when (modeId) {
+        1 -> R.drawable.ic_mode_race_active
+        2 -> R.drawable.ic_mode_sport_active
+        3 -> R.drawable.ic_mode_city_active
+        4 -> R.drawable.ic_mode_normal_active
+        5 -> R.drawable.ic_mode_eco_active
+        else -> R.drawable.ic_mode_normal_active
+    }
+
+    private fun createModeGridItem(modeId: Int, name: String, iconRes: Int): GridItem {
         // Mode icon (matches the phone). IMAGE_TYPE_ICON lets the host tint it to its theme color.
         val icon = CarIcon.Builder(
             IconCompat.createWithResource(carContext, iconRes)
         ).build()
 
         // The Car App Library requires every grid item to have a title, so we can't make tiles
-        // truly icon-only — keep just the short mode name (no verbose "Mode"/description text).
-        val builder = GridItem.Builder()
+        // truly icon-only — keep just the short mode name. No level text below the icon
+        // (the current level is shown in the header title instead).
+        return GridItem.Builder()
             .setTitle(name)
             .setImage(icon, GridItem.IMAGE_TYPE_ICON)
             .setOnClickListener {
@@ -208,11 +221,6 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
                     bleManager.setMode(modeId, lvl)
                 }
             }
-
-        // Show the level only on the currently active tile (the header also shows it).
-        if (isActive) {
-            builder.setText(if (modeId == 4) "ZIN" else "Cấp $activeLevel")
-        }
-        return builder.build()
+            .build()
     }
 }
