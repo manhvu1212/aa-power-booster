@@ -31,6 +31,11 @@ class BleManager private constructor(context: Context) {
         val CHARACTERISTIC_UUID: UUID = UUID.fromString("0000ffe1-0000-1000-8000-00805f9b34fb")
         val CLIENT_CHARACTERISTIC_CONFIG_UUID: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 
+        // P/R master toggle (the 0xFA command in the original app's setPMode). value[9] in the
+        // status packet reports the current state. Mapping confirmed on a real device.
+        private const val BOOST_VALUE_P = 0 // "P" — booster active
+        private const val BOOST_VALUE_R = 1 // "R" — back to the original throttle signal
+
         private const val PREFS_NAME = "speed_prefs"
         private const val KEY_DEVICE_ADDRESS = "device_address"
         private const val KEY_DEVICE_NAME = "device_name"
@@ -82,6 +87,16 @@ class BleManager private constructor(context: Context) {
     private val _commandConfirmed = MutableSharedFlow<Pair<Int, Int>>(extraBufferCapacity = 4)
     val commandConfirmed: SharedFlow<Pair<Int, Int>> = _commandConfirmed.asSharedFlow()
     private var pendingUserCommand = false
+
+    // Master booster on/off (P vs R), parsed from value[9] of the status packet. true = "P".
+    private val _boostOn = MutableStateFlow(true)
+    val boostOn: StateFlow<Boolean> = _boostOn.asStateFlow()
+
+    // One-shot confirmation for the P/R toggle, mirroring commandConfirmed: emits the new state
+    // (true = P) only when the device echoes back a toggle the user just sent (silent on syncs).
+    private val _boostConfirmed = MutableSharedFlow<Boolean>(extraBufferCapacity = 4)
+    val boostConfirmed: SharedFlow<Boolean> = _boostConfirmed.asSharedFlow()
+    private var pendingBoostCommand = false
 
     // Saved device (reactive) so the UI can hide the scanner once a device is remembered.
     private val _savedDeviceAddress = MutableStateFlow(getSavedAddress())
@@ -344,6 +359,18 @@ class BleManager private constructor(context: Context) {
             )
         }
 
+        // value[9] (right after the five per-mode levels) carries the P/R master-toggle state.
+        if (value.size >= 10) {
+            val on = (value[9].toInt() and 0xFF) == BOOST_VALUE_P
+            _boostOn.value = on
+            // If this packet is the device's reply to a P/R toggle the user just sent, fire a
+            // one-shot confirmation (consumed once so background syncs stay silent).
+            if (pendingBoostCommand) {
+                pendingBoostCommand = false
+                _boostConfirmed.tryEmit(on)
+            }
+        }
+
         // The active mode's level is the slot matching the current mode (value[3 + mode]).
         val levelIndex = 3 + mode
         val level = when {
@@ -409,6 +436,24 @@ class BleManager private constructor(context: Context) {
             // packet that arrives fires a confirmation toast.
             pendingUserCommand = true
             // Ask the device for a fresh full-status packet so the raw log reflects the new state
+            handler.postDelayed({ queryDeviceData() }, 300)
+        }
+    }
+
+    // Toggle the P/R master booster. Packet [0xC0, 0xF0, 0xFA, value, 0xC0]; value[9] echoes it back.
+    fun setBoost(toP: Boolean) {
+        val value = if (toP) BOOST_VALUE_P else BOOST_VALUE_R
+        val cmd = byteArrayOf(
+            -64,             // 0xC0
+            -16,             // 0xF0
+            -6,              // 0xFA
+            value.toByte(),
+            -64              // 0xC0
+        )
+        if (writeData(cmd)) {
+            // Optimistically update locally and expect a device reply to fire the confirmation.
+            _boostOn.value = toP
+            pendingBoostCommand = true
             handler.postDelayed({ queryDeviceData() }, 300)
         }
     }

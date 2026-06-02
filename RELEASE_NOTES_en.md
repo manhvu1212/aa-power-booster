@@ -1,18 +1,22 @@
-# Release Notes - AA Power Booster v2.0.4
+# Release Notes - AA Power Booster v2.1.0
 
 ## 1. Short version (for Google Play Console - under 500 characters)
 ```text
-AA Power Booster v2.0.4 release (io.github.manhvu1212.aapowerbooster):
-- The entire interface is now in English.
-- Shows a confirmation message when the device responds after each mode/level change (both phone and Android Auto).
-- Cleaner Normal mode (removed the "stock" label).
+AA Power Booster v2.1.0 release (io.github.manhvu1212.aapowerbooster):
+- New P/R toggle on Android Auto: quickly turn the booster on/off without losing your selected mode.
+- The P/R icon clearly shows the active state (filled letter), with a confirmation message on change.
 ```
 
 ---
 
 ## 2. Detailed version (Changelog & technical notes)
 
-### Version 2.0.4:
+### Version 2.1.0:
+1. **P/R toggle on Android Auto:** added a 6th tile on the car screen to quickly switch between **P** (booster active) and **R** (back to the original throttle), independent of the 5 driving modes — without losing your selected mode/level.
+2. **Clear icon:** "P / R" inside a rounded border; the active state's letter is **filled** while the other is just an **outline**, so a glance tells you which state you're in.
+3. **Confirmation message:** when the device responds, a CarToast shows "✓ Mode P" / "✓ Mode R" — same confirmation pattern as the existing mode/level changes.
+
+### Since 2.0.4:
 1. **English interface:** all on-screen text in the app (phone + Android Auto) is now in English.
 2. **Confirmation when the device responds:** after you change mode/level, when the device sends its data back, the app shows a brief message (Toast on the phone, CarToast on Android Auto) like "✓ Race · Level 5" — proof that the command actually reached the device. It only appears for a command you just sent, not for background syncs.
 3. **Cleaner Normal mode:** removed the "(stock)" suffix — it now just shows "Normal".

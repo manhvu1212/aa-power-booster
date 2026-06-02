@@ -20,6 +20,7 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
     private var connectionState = BleManager.ConnectionState.DISCONNECTED
     private var activeMode = 4
     private var activeLevel = 0
+    private var boostOn = true // P/R master toggle (true = P)
 
     // Only record breadcrumbs for the first template build to avoid spamming on every invalidate()
     private var breadcrumbed = false
@@ -43,13 +44,15 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
                         combine(
                             bleManager.connectionState,
                             bleManager.activeMode,
-                            bleManager.activeLevel
-                        ) { conn, mode, lvl ->
-                            Triple(conn, mode, lvl)
-                        }.collect { (conn, mode, lvl) ->
-                            connectionState = conn
-                            activeMode = mode
-                            activeLevel = lvl
+                            bleManager.activeLevel,
+                            bleManager.boostOn
+                        ) { conn, mode, lvl, boost ->
+                            arrayOf(conn, mode, lvl, boost)
+                        }.collect { s ->
+                            connectionState = s[0] as BleManager.ConnectionState
+                            activeMode = s[1] as Int
+                            activeLevel = s[2] as Int
+                            boostOn = s[3] as Boolean
                             invalidate() // Re-runs onGetTemplate()
                         }
                     } catch (t: Throwable) {
@@ -72,6 +75,21 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
                             }
                             val msg = if (mode == 4) "✓ $name" else "✓ $name · Level $level"
                             CarToast.makeText(carContext, msg, CarToast.LENGTH_SHORT).show()
+                        } catch (t: Throwable) {
+                            PowerBoosterApp.saveCrash(carContext, "CarToast failed", t)
+                        }
+                    }
+                }
+
+                // Confirmation toast for the P/R master toggle (shares the same one-shot pattern).
+                scope?.launch {
+                    bleManager.boostConfirmed.collect { on ->
+                        try {
+                            CarToast.makeText(
+                                carContext,
+                                if (on) "✓ Mode P" else "✓ Mode R",
+                                CarToast.LENGTH_SHORT
+                            ).show()
                         } catch (t: Throwable) {
                             PowerBoosterApp.saveCrash(carContext, "CarToast failed", t)
                         }
@@ -116,6 +134,9 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
             val res = if (activeMode == id) activeIconRes(id) else iconRes
             createModeGridItem(modeId = id, name = name, iconRes = res)
         }.toMutableList()
+
+        // 6th tile: P/R master toggle. Icon shows the active letter filled, the other outlined.
+        gridItemList.add(createBoostGridItem())
 
         // Header shows the current mode + level when connected. (Android Auto's action strip is
         // capped at 2 buttons, so the level number can't be a 3rd item literally between -/+;
@@ -241,6 +262,23 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
                     // Each mode keeps its own level; restore that mode's stored level.
                     val lvl = if (modeId == 4) 0 else bleManager.levelForMode(modeId)
                     bleManager.setMode(modeId, lvl)
+                }
+            }
+            .build()
+    }
+
+    // P/R master-toggle tile. Tapping flips between P and R; the icon reflects the current state.
+    private fun createBoostGridItem(): GridItem {
+        val iconRes = if (boostOn) R.drawable.ic_boost_pr_p else R.drawable.ic_boost_pr_r
+        val icon = CarIcon.Builder(
+            IconCompat.createWithResource(carContext, iconRes)
+        ).build()
+        return GridItem.Builder()
+            .setTitle(if (boostOn) "Mode P" else "Mode R")
+            .setImage(icon, GridItem.IMAGE_TYPE_ICON)
+            .setOnClickListener {
+                if (connectionState == BleManager.ConnectionState.CONNECTED) {
+                    bleManager.setBoost(!boostOn)
                 }
             }
             .build()

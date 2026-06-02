@@ -37,6 +37,7 @@ AA Power Booster giúp bạn điều khiển bộ điều tốc chân ga (cảm 
 • Tăng/giảm độ nhạy chân ga theo 9 cấp cho mỗi chế độ
 • Mỗi chế độ ghi nhớ cấp độ riêng – chuyển chế độ là về đúng cấp đã đặt
 • Hỗ trợ Android Auto: chọn chế độ và chỉnh cấp ngay trên màn hình xe
+• Nút chuyển P/R trên Android Auto: bật/tắt nhanh bộ tăng lực mà không mất chế độ đã chọn
 • Điều khiển trực tiếp trên điện thoại với giao diện tối giản, hiện đại
 • Tự động kết nối lại với thiết bị đã lưu khi mở ứng dụng
 • Đồng bộ trạng thái với thiết bị theo thời gian thực

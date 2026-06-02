@@ -37,6 +37,7 @@ AA Power Booster lets you easily control your car's throttle-response controller
 • Adjust throttle sensitivity across 9 levels for each mode
 • Each mode remembers its own level – switching modes restores the level you set
 • Android Auto support: pick a mode and adjust the level right on the car screen
+• Quick P/R toggle on Android Auto: turn the booster on/off without losing your selected mode
 • Direct control on your phone with a clean, modern interface
 • Automatically reconnects to the saved device when you open the app
 • Real-time status sync with the device

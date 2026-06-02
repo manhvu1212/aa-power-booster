@@ -1,18 +1,22 @@
-# Bản ghi phát hành (Release Notes) - AA Power Booster v2.0.4
+# Bản ghi phát hành (Release Notes) - AA Power Booster v2.1.0
 
 ## 1. Bản ngắn gọn (Dùng để nhập trên Google Play Console - Dưới 500 ký tự)
 ```text
-Bản phát hành AA Power Booster v2.0.4 (io.github.manhvu1212.aapowerbooster):
-- Toàn bộ giao diện chuyển sang tiếng Anh.
-- Hiện thông báo xác nhận khi thiết bị phản hồi sau mỗi lần đổi chế độ/cấp (cả điện thoại và Android Auto).
-- Chế độ Normal gọn hơn (bỏ chữ "stock").
+Bản phát hành AA Power Booster v2.1.0 (io.github.manhvu1212.aapowerbooster):
+- Thêm nút chuyển P/R trên Android Auto: bật/tắt nhanh bộ tăng lực mà không mất chế độ đã chọn.
+- Biểu tượng P/R cho thấy rõ chế độ đang bật (chữ tô đặc), kèm thông báo xác nhận khi đổi.
 ```
 
 ---
 
 ## 2. Bản chi tiết (Changelog & Hướng dẫn kỹ thuật)
 
-### Phiên bản 2.0.4:
+### Phiên bản 2.1.0:
+1. **Nút chuyển P/R trên Android Auto:** thêm ô thứ 6 trên màn hình xe để chuyển nhanh giữa **P** (bộ tăng lực hoạt động) và **R** (trả về ga nguyên bản), độc lập với 5 chế độ lái — không làm mất chế độ/cấp đang chọn.
+2. **Biểu tượng trực quan:** trong khung bo góc có "P / R"; chữ của chế độ đang bật được **tô đặc**, chữ còn lại chỉ có **viền rỗng**, nên liếc là biết đang ở chế độ nào.
+3. **Thông báo xác nhận:** khi thiết bị phản hồi, hiện CarToast "✓ Mode P" / "✓ Mode R" — giống cơ chế xác nhận đổi chế độ/cấp hiện có.
+
+### Đã có từ 2.0.4:
 1. **Giao diện tiếng Anh:** toàn bộ chữ hiển thị trong ứng dụng (điện thoại + Android Auto) đã chuyển sang tiếng Anh.
 2. **Thông báo xác nhận khi thiết bị phản hồi:** sau khi bấm đổi chế độ/cấp, khi thiết bị gửi dữ liệu trả về, ứng dụng hiện thông báo ngắn (Toast trên điện thoại, CarToast trên Android Auto) dạng "✓ Race · Level 5" — bằng chứng lệnh đã tới thiết bị thật. Chỉ hiện khi do người dùng vừa bấm, không hiện khi đồng bộ nền.
 3. **Chế độ Normal gọn hơn:** bỏ chữ "(stock)" — chỉ hiển thị "Normal".
