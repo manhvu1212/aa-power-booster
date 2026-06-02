@@ -1,17 +1,20 @@
-# Bản ghi phát hành (Release Notes) - AA Power Booster v2.1.0
+# Bản ghi phát hành (Release Notes) - AA Power Booster v2.1.1
 
 ## 1. Bản ngắn gọn (Dùng để nhập trên Google Play Console - Dưới 500 ký tự)
 ```text
-Bản phát hành AA Power Booster v2.1.0 (io.github.manhvu1212.aapowerbooster):
-- Thêm nút chuyển P/R trên Android Auto: bật/tắt nhanh bộ tăng lực mà không mất chế độ đã chọn.
-- Biểu tượng P/R cho thấy rõ chế độ đang bật (chữ tô đặc), kèm thông báo xác nhận khi đổi.
+Bản phát hành AA Power Booster v2.1.1 (io.github.manhvu1212.aapowerbooster):
+- Sửa cảnh báo "Không thể hoàn tất khi đang lái" trên Android Auto khi thao tác nhanh.
+- Giao diện xe ổn định hơn, không còn bị chặn khi bấm dồn dập.
 ```
 
 ---
 
 ## 2. Bản chi tiết (Changelog & Hướng dẫn kỹ thuật)
 
-### Phiên bản 2.1.0:
+### Phiên bản 2.1.1:
+1. **Sửa lỗi Android Auto chặn khi đang lái:** khi bấm dồn dập (đổi chế độ/cấp/P/R liên tục), Android Auto có thể bung cảnh báo "Không thể hoàn tất việc này khi đang lái xe" do app đẩy template quá dày, vượt hạn mức của hệ thống. Đã khắc phục bằng cách: (a) gộp các lần vẽ lại thành tối đa một lần mỗi 300ms, và (b) luôn giữ cùng một loại bố cục lưới (không đổi sang màn thông báo), nên mỗi lần vẽ được tính là "làm mới" miễn phí — không còn chạm hạn mức.
+
+### Đã có từ 2.1.0:
 1. **Nút chuyển P/R trên Android Auto:** thêm ô thứ 6 trên màn hình xe để chuyển nhanh giữa **P** (bộ tăng lực hoạt động) và **R** (trả về ga nguyên bản), độc lập với 5 chế độ lái — không làm mất chế độ/cấp đang chọn.
 2. **Biểu tượng trực quan:** trong khung bo góc có "P / R"; chữ của chế độ đang bật được **tô đặc**, chữ còn lại chỉ có **viền rỗng**, nên liếc là biết đang ở chế độ nào.
 3. **Thông báo xác nhận:** khi thiết bị phản hồi, hiện CarToast "✓ Mode P" / "✓ Mode R" — giống cơ chế xác nhận đổi chế độ/cấp hiện có.

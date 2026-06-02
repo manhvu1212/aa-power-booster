@@ -1,5 +1,6 @@
 package io.github.manhvu1212.aapowerbooster
 
+import android.os.SystemClock
 import androidx.car.app.CarContext
 import androidx.car.app.CarToast
 import androidx.car.app.Screen
@@ -12,6 +13,11 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.combine
 
 class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
+
+    companion object {
+        // Max one template refresh per this interval (ms) — see the collector for why.
+        private const val REFRESH_THROTTLE_MS = 300L
+    }
 
     private val bleManager = BleManager.getInstance(carContext)
     private var scope: CoroutineScope? = null
@@ -40,7 +46,16 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
                             bleManager.connect(savedAddress)
                         }
 
-                        // Listen to state changes and redraw the UI screen
+                        // Listen to state changes and redraw the UI screen.
+                        // Android Auto caps how many template pushes an app may make while driving;
+                        // only same-type/same-item-count refreshes are "free". A burst of BLE state
+                        // changes (reconnect churn, command + follow-up query) can flood invalidate()
+                        // and trip the host's "Can't complete this action while driving" guard. So we
+                        // coalesce changes into at most one refresh per REFRESH_THROTTLE_MS, always
+                        // keeping a trailing redraw so the final state is reflected. A single tap is
+                        // still immediate (it only coalesces when changes arrive faster than that).
+                        var lastRefresh = 0L
+                        var trailing: Job? = null
                         combine(
                             bleManager.connectionState,
                             bleManager.activeMode,
@@ -53,7 +68,23 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
                             activeMode = s[1] as Int
                             activeLevel = s[2] as Int
                             boostOn = s[3] as Boolean
-                            invalidate() // Re-runs onGetTemplate()
+
+                            val now = SystemClock.uptimeMillis()
+                            val elapsed = now - lastRefresh
+                            if (elapsed >= REFRESH_THROTTLE_MS) {
+                                trailing?.cancel(); trailing = null
+                                lastRefresh = now
+                                invalidate() // Re-runs onGetTemplate()
+                            } else if (trailing == null) {
+                                // Schedule one trailing redraw; cached vars above already hold the
+                                // latest state, so whenever it fires it draws the newest values.
+                                trailing = scope?.launch {
+                                    delay(REFRESH_THROTTLE_MS - elapsed)
+                                    lastRefresh = SystemClock.uptimeMillis()
+                                    trailing = null
+                                    invalidate()
+                                }
+                            }
                         }
                     } catch (t: Throwable) {
                         PowerBoosterApp.saveCrash(carContext, "Session coroutine crash", t)
@@ -108,13 +139,46 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
         return try {
             buildTemplate()
         } catch (t: Throwable) {
-            // Surface the error on the car screen (photographable) and save it for the phone app.
             PowerBoosterApp.saveCrash(carContext, "onGetTemplate crash", t)
-            MessageTemplate.Builder("Error: ${t.message ?: t.toString()}")
-                .setTitle("AA Power Booster - Error")
-                .setHeaderAction(Action.APP_ICON)
-                .build()
+            // Stay on a GridTemplate (same type, same 6 items) even on a transient failure, so the
+            // redraw is still a "refresh" and never counts toward Android Auto's 5-template-per-task
+            // quota. Switching template type (Grid -> Message) burns that quota and, under rapid use,
+            // trips the host's "Can't complete this action while driving" guard. Only drop to a
+            // message if even the minimal grid fails to build.
+            try {
+                fallbackGrid()
+            } catch (t2: Throwable) {
+                PowerBoosterApp.saveCrash(carContext, "fallbackGrid crash", t2)
+                MessageTemplate.Builder("Error: ${t.message ?: t.toString()}")
+                    .setTitle("AA Power Booster - Error")
+                    .setHeaderAction(Action.APP_ICON)
+                    .build()
+            }
         }
+    }
+
+    // Minimal, always-6-item GridTemplate used only if buildTemplate() throws. Keeps the redraw a
+    // same-type refresh (no Grid->Message switch -> no quota burn). Deliberately avoids the
+    // ConstraintManager read and ActionStrip so it is as unlikely to throw as possible.
+    private fun fallbackGrid(): Template {
+        val modes = listOf(
+            Triple(1, "Race", R.drawable.ic_mode_race),
+            Triple(2, "Sport", R.drawable.ic_mode_sport),
+            Triple(3, "City", R.drawable.ic_mode_city),
+            Triple(4, "Normal", R.drawable.ic_mode_normal),
+            Triple(5, "Eco", R.drawable.ic_mode_eco)
+        )
+        val listBuilder = ItemList.Builder()
+        modes.forEach { (id, name, iconRes) ->
+            val res = if (activeMode == id) activeIconRes(id) else iconRes
+            listBuilder.addItem(createModeGridItem(modeId = id, name = name, iconRes = res))
+        }
+        listBuilder.addItem(createBoostGridItem())
+        return GridTemplate.Builder()
+            .setTitle("AA Power Booster")
+            .setHeaderAction(Action.APP_ICON)
+            .setSingleList(listBuilder.build())
+            .build()
     }
 
     private fun buildTemplate(): Template {
@@ -156,9 +220,9 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
             BleManager.ConnectionState.DISCONNECTED -> "Throttle not connected / device busy"
         }
 
-        // Level +/- live in the ActionStrip (not the grid) so the grid stays at 5 mode tiles —
-        // safely under every head unit's grid item limit (guaranteed minimum 6). The active mode's
-        // current level is shown on its grid tile.
+        // Level +/- live in the ActionStrip (not the grid) so the grid stays at 6 tiles (5 modes +
+        // the P/R toggle) — at the guaranteed-minimum grid limit of 6. The active mode's current
+        // level is shown in the header title.
         // NOTE: an ActionStrip allows at most ONE action with a custom title, so use ICONS here
         // (icon-only actions do not count as custom titles).
         val minusIcon = CarIcon.Builder(
@@ -192,9 +256,12 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
             )
             .build()
 
-        // Guard: many head units cap the number of grid items (often 6). If we exceed the host's
-        // limit, the host rejects the template and the app crashes with a generic error, so detect
-        // it here and show a clear message (and record the real limit for diagnosis) instead.
+        // Guard: many head units cap the number of grid items. Google guarantees a minimum of 6 and
+        // we use exactly 6, so this is extremely unlikely to trigger — but if a host caps below our
+        // count, TRIM to fit rather than switching to a MessageTemplate. Staying a GridTemplate keeps
+        // every redraw a quota-free refresh (a Grid->Message switch would burn the template quota and
+        // trip the host's "can't complete while driving" guard under rapid use). gridLimit is a
+        // static host capability, so trimming is consistent across redraws (still a refresh).
         val gridLimit = try {
             carContext.getCarService(ConstraintManager::class.java)
                 .getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_GRID)
@@ -204,20 +271,15 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
         if (!breadcrumbed) {
             PowerBoosterApp.saveStatus(carContext, "items=${gridItemList.size} gridLimit=$gridLimit")
         }
-        // Only trim when we actually know the host's limit and it is smaller than our item count.
-        if (gridLimit in 1 until gridItemList.size) {
-            PowerBoosterApp.saveStatus(carContext, "GRID LIMIT EXCEEDED -> showing message")
-            return MessageTemplate.Builder(
-                "The car screen allows only $gridLimit tiles but the app needs ${gridItemList.size}. " +
-                    "Reduce the number of buttons in the Android Auto UI."
-            )
-                .setTitle("AA Power Booster")
-                .setHeaderAction(Action.APP_ICON)
-                .build()
+        val itemsToShow = if (gridLimit in 1 until gridItemList.size) {
+            PowerBoosterApp.saveStatus(carContext, "GRID LIMIT $gridLimit < ${gridItemList.size} -> trimming")
+            gridItemList.take(gridLimit)
+        } else {
+            gridItemList
         }
 
         val listBuilder = ItemList.Builder()
-        for (item in gridItemList) {
+        for (item in itemsToShow) {
             listBuilder.addItem(item)
         }
 
