@@ -71,7 +71,7 @@ AA Power Booster giúp bạn điều khiển bộ điều tốc chân ga (cảm 
 ## An toàn dữ liệu (Data safety) — câu trả lời gợi ý trong Play Console
 - Ứng dụng có thu thập/chia sẻ dữ liệu người dùng không? → **Không**
 - Dữ liệu có được mã hoá khi truyền không? → Không áp dụng (ứng dụng không truyền dữ liệu, không có quyền Internet)
-- Người dùng có thể yêu cầu xoá dữ liệu không? → Dữ liệu (địa chỉ/tên thiết bị) chỉ lưu cục bộ; xoá bằng nút "Xóa lưu" hoặc gỡ cài đặt.
+- Người dùng có thể yêu cầu xoá dữ liệu không? → Dữ liệu (địa chỉ/tên thiết bị) chỉ lưu cục bộ; xoá bằng nút "Forget" hoặc gỡ cài đặt.
 - Vị trí: quyền được khai báo nhưng **không thu thập** (chỉ phục vụ quét Bluetooth; đã gắn cờ `neverForLocation` trên Android 12+).
 
 ---
