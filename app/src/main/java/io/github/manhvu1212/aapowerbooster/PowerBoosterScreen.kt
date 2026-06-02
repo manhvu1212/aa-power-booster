@@ -1,6 +1,7 @@
 package io.github.manhvu1212.aapowerbooster
 
 import androidx.car.app.CarContext
+import androidx.car.app.CarToast
 import androidx.car.app.Screen
 import androidx.car.app.constraints.ConstraintManager
 import androidx.car.app.model.*
@@ -55,6 +56,27 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
                         PowerBoosterApp.saveCrash(carContext, "Session coroutine crash", t)
                     }
                 }
+
+                // Show a CarToast when the device confirms a command the user just sent (shares the
+                // same one-shot event as the phone app, so it never fires on background syncs).
+                scope?.launch {
+                    bleManager.commandConfirmed.collect { (mode, level) ->
+                        try {
+                            val name = when (mode) {
+                                1 -> "Race"
+                                2 -> "Sport"
+                                3 -> "City"
+                                4 -> "Normal"
+                                5 -> "Eco"
+                                else -> "?"
+                            }
+                            val msg = if (mode == 4) "✓ $name" else "✓ $name · Level $level"
+                            CarToast.makeText(carContext, msg, CarToast.LENGTH_SHORT).show()
+                        } catch (t: Throwable) {
+                            PowerBoosterApp.saveCrash(carContext, "CarToast failed", t)
+                        }
+                    }
+                }
             }
 
             override fun onStop(owner: LifecycleOwner) {
@@ -70,8 +92,8 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
         } catch (t: Throwable) {
             // Surface the error on the car screen (photographable) and save it for the phone app.
             PowerBoosterApp.saveCrash(carContext, "onGetTemplate crash", t)
-            MessageTemplate.Builder("Lỗi: ${t.message ?: t.toString()}")
-                .setTitle("AA Power Booster - Lỗi")
+            MessageTemplate.Builder("Error: ${t.message ?: t.toString()}")
+                .setTitle("AA Power Booster - Error")
                 .setHeaderAction(Action.APP_ICON)
                 .build()
         }
@@ -108,9 +130,9 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
         }
         val headerTitle = when (connectionState) {
             BleManager.ConnectionState.CONNECTED ->
-                if (activeMode == 4) "$modeName (zin)" else "$modeName · Cấp $activeLevel"
-            BleManager.ConnectionState.CONNECTING -> "Đang kết nối chân ga..."
-            BleManager.ConnectionState.DISCONNECTED -> "Chưa kết nối chân ga / Thiết bị bận"
+                if (activeMode == 4) modeName else "$modeName · Level $activeLevel"
+            BleManager.ConnectionState.CONNECTING -> "Connecting to throttle..."
+            BleManager.ConnectionState.DISCONNECTED -> "Throttle not connected / device busy"
         }
 
         // Level +/- live in the ActionStrip (not the grid) so the grid stays at 5 mode tiles —
@@ -165,8 +187,8 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
         if (gridLimit in 1 until gridItemList.size) {
             PowerBoosterApp.saveStatus(carContext, "GRID LIMIT EXCEEDED -> showing message")
             return MessageTemplate.Builder(
-                "Màn hình xe chỉ cho phép $gridLimit ô nhưng ứng dụng cần ${gridItemList.size} ô. " +
-                    "Cần giảm bớt số nút trên giao diện Android Auto."
+                "The car screen allows only $gridLimit tiles but the app needs ${gridItemList.size}. " +
+                    "Reduce the number of buttons in the Android Auto UI."
             )
                 .setTitle("AA Power Booster")
                 .setHeaderAction(Action.APP_ICON)

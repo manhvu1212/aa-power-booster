@@ -12,8 +12,11 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.*
 
@@ -72,6 +75,13 @@ class BleManager private constructor(context: Context) {
     // 1=Race, 2=Sport, 3=City, 5=Eco. Normal (4) has no level.
     private val _modeLevels = MutableStateFlow<Map<Int, Int>>(emptyMap())
     val modeLevels: StateFlow<Map<Int, Int>> = _modeLevels.asStateFlow()
+
+    // One-shot confirmation events: emitted (mode, level) when the device's data arrives in
+    // response to a command the user just sent, so the UI can show a transient toast. Not emitted
+    // for background syncs (initial connect query) because no user command is pending then.
+    private val _commandConfirmed = MutableSharedFlow<Pair<Int, Int>>(extraBufferCapacity = 4)
+    val commandConfirmed: SharedFlow<Pair<Int, Int>> = _commandConfirmed.asSharedFlow()
+    private var pendingUserCommand = false
 
     // Saved device (reactive) so the UI can hide the scanner once a device is remembered.
     private val _savedDeviceAddress = MutableStateFlow(getSavedAddress())
@@ -346,10 +356,16 @@ class BleManager private constructor(context: Context) {
         if (mode in 1..5) {
             _activeMode.value = mode
             _activeLevel.value = level
+            // If this packet is the device's reply to a command the user just sent, fire a
+            // one-shot confirmation event (consumed once so background syncs stay silent).
+            if (pendingUserCommand) {
+                pendingUserCommand = false
+                _commandConfirmed.tryEmit(mode to level)
+            }
         }
     }
 
-    // Gửi lệnh điều khiển (Send command helper)
+    // Send command helper
     private fun writeData(bytes: ByteArray): Boolean {
         val gatt = bluetoothGatt ?: return false
         val characteristic = writeCharacteristic ?: return false
@@ -389,6 +405,9 @@ class BleManager private constructor(context: Context) {
             // Optimistically update values locally
             _activeMode.value = mode
             _activeLevel.value = l
+            // Mark that we're expecting a device response to this user action, so the next data
+            // packet that arrives fires a confirmation toast.
+            pendingUserCommand = true
             // Ask the device for a fresh full-status packet so the raw log reflects the new state
             handler.postDelayed({ queryDeviceData() }, 300)
         }

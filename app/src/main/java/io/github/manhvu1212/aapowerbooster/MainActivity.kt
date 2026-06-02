@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -39,10 +40,10 @@ class MainActivity : ComponentActivity() {
     ) { permissions ->
         val allGranted = permissions.entries.all { it.value }
         if (allGranted) {
-            Toast.makeText(this, "Quyền Bluetooth đã được cấp!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Bluetooth permission granted!", Toast.LENGTH_SHORT).show()
             autoConnectSaved()
         } else {
-            Toast.makeText(this, "Bạn cần cấp quyền để quét thiết bị!", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "You need to grant permission to scan for devices!", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -115,6 +116,25 @@ fun CompanionScreen(bleManager: BleManager) {
     val savedAddress by bleManager.savedDeviceAddress.collectAsState()
     val savedName by bleManager.savedDeviceName.collectAsState()
 
+    // When the device echoes back the new state after a press, show a brief confirmation toast.
+    val context = LocalContext.current
+    var confirmToast by remember { mutableStateOf<Toast?>(null) }
+    LaunchedEffect(Unit) {
+        bleManager.commandConfirmed.collect { (mode, level) ->
+            val name = when (mode) {
+                1 -> "Race"
+                2 -> "Sport"
+                3 -> "City"
+                4 -> "Normal"
+                5 -> "Eco"
+                else -> "?"
+            }
+            val msg = if (mode == 4) "✓ $name" else "✓ $name · Level $level"
+            confirmToast?.cancel()
+            confirmToast = Toast.makeText(context, msg, Toast.LENGTH_SHORT).also { it.show() }
+        }
+    }
+
     val gradientBrush = Brush.verticalGradient(
         colors = listOf(Color(0xFF1E1E2C), Color(0xFF0F0F16))
     )
@@ -140,7 +160,7 @@ fun CompanionScreen(bleManager: BleManager) {
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "Trạng thái kết nối",
+                    text = "Connection status",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = Color.White
@@ -153,15 +173,15 @@ fun CompanionScreen(bleManager: BleManager) {
                     val statusColor: Color
                     when (connectionState) {
                         BleManager.ConnectionState.CONNECTED -> {
-                            statusText = "ĐÃ KẾT NỐI"
+                            statusText = "CONNECTED"
                             statusColor = Color(0xFF00FF66)
                         }
                         BleManager.ConnectionState.CONNECTING -> {
-                            statusText = "ĐANG KẾT NỐI..."
+                            statusText = "CONNECTING..."
                             statusColor = Color(0xFFFFCC00)
                         }
                         BleManager.ConnectionState.DISCONNECTED -> {
-                            statusText = "CHƯA KẾT NỐI / THIẾT BỊ BẬN"
+                            statusText = "DISCONNECTED / DEVICE BUSY"
                             statusColor = Color(0xFFFF3366)
                         }
                     }
@@ -180,7 +200,7 @@ fun CompanionScreen(bleManager: BleManager) {
                     HorizontalDivider(color = Color.Gray.copy(alpha = 0.3f))
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Thiết bị hoạt động: $savedName\nMAC: $savedAddress",
+                        text = "Active device: $savedName\nMAC: $savedAddress",
                         fontSize = 12.sp,
                         color = Color.LightGray
                     )
@@ -200,7 +220,7 @@ fun CompanionScreen(bleManager: BleManager) {
                             ),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text(text = if (connectionState == BleManager.ConnectionState.CONNECTED) "Ngắt kết nối BLE" else "Kết nối thiết bị")
+                            Text(text = if (connectionState == BleManager.ConnectionState.CONNECTED) "Disconnect BLE" else "Connect device")
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         OutlinedButton(
@@ -212,13 +232,13 @@ fun CompanionScreen(bleManager: BleManager) {
                                 contentColor = Color.White
                             )
                         ) {
-                            Text("Xóa lưu")
+                            Text("Forget")
                         }
                     }
                 } else {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Chưa lưu thiết bị. Dò quét ở bên dưới để kết nối.",
+                        text = "No device saved. Scan below to connect.",
                         fontSize = 13.sp,
                         color = Color.Gray
                     )
@@ -239,7 +259,7 @@ fun CompanionScreen(bleManager: BleManager) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Thiết bị quét được",
+                text = "Discovered devices",
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
                 color = Color.White
@@ -257,7 +277,7 @@ fun CompanionScreen(bleManager: BleManager) {
                     contentColor = Color.Black
                 )
             ) {
-                Text(text = if (isScanning) "Dừng quét" else "Dò tìm")
+                Text(text = if (isScanning) "Stop scanning" else "Scan")
             }
         }
 
@@ -272,7 +292,7 @@ fun CompanionScreen(bleManager: BleManager) {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = if (isScanning) "Đang tìm kiếm thiết bị..." else "Nhấn \"Dò tìm\" để quét thiết bị chân ga.",
+                    text = if (isScanning) "Searching for devices..." else "Tap \"Scan\" to find throttle devices.",
                     color = Color.Gray,
                     textAlign = TextAlign.Center
                 )
@@ -312,7 +332,7 @@ fun CompanionScreen(bleManager: BleManager) {
                             )
                         }
                         Text(
-                            text = "Kết nối >",
+                            text = "Connect >",
                             color = Color(0xFF00FFCC),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
@@ -360,7 +380,7 @@ fun ModeControlCard(bleManager: BleManager) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Chọn chế độ lái",
+                    text = "Select driving mode",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = Color.White
@@ -413,7 +433,7 @@ fun ModeControlCard(bleManager: BleManager) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "Cấp độ nhạy", color = Color.White, fontSize = 15.sp)
+                Text(text = "Sensitivity level", color = Color.White, fontSize = 15.sp)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedButton(
                         onClick = {
@@ -448,7 +468,7 @@ fun ModeControlCard(bleManager: BleManager) {
             if (isNormal) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Chế độ Normal (zin) không chỉnh cấp độ.",
+                    text = "Normal mode has no sensitivity level.",
                     fontSize = 12.sp,
                     color = Color.Gray
                 )
