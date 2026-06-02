@@ -79,57 +79,19 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
 
     private fun buildTemplate(): Template {
         if (!breadcrumbed) PowerBoosterApp.saveStatus(carContext, "buildTemplate: enter")
-        val gridItemList = mutableListOf<GridItem>()
 
-        // 1. Race Mode (ID: 1)
-        gridItemList.add(
-            createModeGridItem(
-                modeId = 1,
-                name = "Race Mode",
-                description = "Chế độ đua xe - Cấp 1..9",
-                isActive = activeMode == 1
-            )
+        // Display order: Race - Sport - City - Normal - Eco (same as the phone app).
+        // Icon-only tiles (mode icon matching the phone) for a clean, modern look.
+        val modes = listOf(
+            Triple(1, "Race", R.drawable.ic_mode_race),
+            Triple(2, "Sport", R.drawable.ic_mode_sport),
+            Triple(3, "City", R.drawable.ic_mode_city),
+            Triple(4, "Normal", R.drawable.ic_mode_normal),
+            Triple(5, "Eco", R.drawable.ic_mode_eco)
         )
-
-        // 2. Sport Mode (ID: 2)
-        gridItemList.add(
-            createModeGridItem(
-                modeId = 2,
-                name = "Sport Mode",
-                description = "Chế độ thể thao - Cấp 1..9",
-                isActive = activeMode == 2
-            )
-        )
-
-        // 3. Normal Mode (ID: 4)
-        gridItemList.add(
-            createModeGridItem(
-                modeId = 4,
-                name = "Normal Mode",
-                description = "Chế độ zin của xe",
-                isActive = activeMode == 4
-            )
-        )
-
-        // 4. City/Comfort Mode (ID: 3)
-        gridItemList.add(
-            createModeGridItem(
-                modeId = 3,
-                name = "City Mode",
-                description = "Chế độ đi phố mượt - Cấp 1..9",
-                isActive = activeMode == 3
-            )
-        )
-
-        // 5. Eco Mode (ID: 5)
-        gridItemList.add(
-            createModeGridItem(
-                modeId = 5,
-                name = "Eco Mode",
-                description = "Tiết kiệm nhiên liệu - Cấp 1..9",
-                isActive = activeMode == 5
-            )
-        )
+        val gridItemList = modes.map { (id, name, iconRes) ->
+            createModeGridItem(modeId = id, name = name, iconRes = iconRes, isActive = activeMode == id)
+        }.toMutableList()
 
         // Header shows the current mode + level when connected. (Android Auto's action strip is
         // capped at 2 buttons, so the level number can't be a 3rd item literally between -/+;
@@ -228,18 +190,17 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
         return template
     }
 
-    private fun createModeGridItem(modeId: Int, name: String, description: String, isActive: Boolean): GridItem {
-        val title = if (isActive) "★ $name ★" else name
-        val text = if (isActive) {
-            if (modeId == 4) "ĐANG CHỌN" else "Đang chọn - Cấp $activeLevel"
-        } else {
-            description
-        }
+    private fun createModeGridItem(modeId: Int, name: String, iconRes: Int, isActive: Boolean): GridItem {
+        // Mode icon (matches the phone). IMAGE_TYPE_ICON lets the host tint it to its theme color.
+        val icon = CarIcon.Builder(
+            IconCompat.createWithResource(carContext, iconRes)
+        ).build()
 
-        return GridItem.Builder()
-            .setTitle(title)
-            .setText(text)
-            .setImage(CarIcon.APP_ICON)
+        // The Car App Library requires every grid item to have a title, so we can't make tiles
+        // truly icon-only — keep just the short mode name (no verbose "Mode"/description text).
+        val builder = GridItem.Builder()
+            .setTitle(name)
+            .setImage(icon, GridItem.IMAGE_TYPE_ICON)
             .setOnClickListener {
                 if (connectionState == BleManager.ConnectionState.CONNECTED) {
                     // Each mode keeps its own level; restore that mode's stored level.
@@ -247,6 +208,11 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
                     bleManager.setMode(modeId, lvl)
                 }
             }
-            .build()
+
+        // Show the level only on the currently active tile (the header also shows it).
+        if (isActive) {
+            builder.setText(if (modeId == 4) "ZIN" else "Cấp $activeLevel")
+        }
+        return builder.build()
     }
 }

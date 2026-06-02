@@ -335,15 +335,16 @@ fun ModeControlCard(bleManager: BleManager) {
     // Only show controls while connected (sending commands otherwise has no effect)
     if (connectionState != BleManager.ConnectionState.CONNECTED) return
 
-    // Modes in display order: Race - Sport - Normal - City - Eco (icon only, no label needed)
+    // Modes in display order: Race - Sport - City - Normal - Eco (icon only, no label needed)
     val modes = listOf(
         Triple(1, "Race", R.drawable.ic_mode_race),
         Triple(2, "Sport", R.drawable.ic_mode_sport),
-        Triple(4, "Normal", R.drawable.ic_mode_normal),
         Triple(3, "City", R.drawable.ic_mode_city),
+        Triple(4, "Normal", R.drawable.ic_mode_normal),
         Triple(5, "Eco", R.drawable.ic_mode_eco)
     )
     val isNormal = activeMode == 4
+    val activeModeName = modes.firstOrNull { it.first == activeMode }?.second ?: "—"
 
     Card(
         modifier = Modifier
@@ -353,12 +354,24 @@ fun ModeControlCard(bleManager: BleManager) {
         colors = CardDefaults.cardColors(containerColor = Color(0xFF26263B))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Chọn chế độ lái",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                color = Color.White
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Chọn chế độ lái",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color.White
+                )
+                Text(
+                    text = activeModeName,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    color = Color(0xFF00FFCC)
+                )
+            }
             Spacer(modifier = Modifier.height(12.dp))
 
             // 5 modes as 5 evenly-sized icon tiles on a single row (no scrolling, no labels).

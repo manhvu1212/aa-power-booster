@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Solid black fills the whole adaptive shape (circle on Android Auto) -> no white ring -->
+    <background android:drawable="@android:color/black" />
+    <!-- Red wing centered (black-on-black around it, so only the wing shows) -->
+    <foreground android:drawable="@mipmap/app_icon_foreground" />
+</adaptive-icon>
