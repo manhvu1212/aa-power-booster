@@ -1,17 +1,21 @@
-# Bản ghi phát hành (Release Notes) - AA Power Booster v2.1.1
+# Bản ghi phát hành (Release Notes) - AA Power Booster v2.1.2
 
 ## 1. Bản ngắn gọn (Dùng để nhập trên Google Play Console - Dưới 500 ký tự)
 ```text
-Bản phát hành AA Power Booster v2.1.1 (io.github.manhvu1212.aapowerbooster):
-- Sửa cảnh báo "Không thể hoàn tất khi đang lái" trên Android Auto khi thao tác nhanh.
-- Giao diện xe ổn định hơn, không còn bị chặn khi bấm dồn dập.
+Bản phát hành AA Power Booster v2.1.2 (io.github.manhvu1212.aapowerbooster):
+- Khắc phục triệt để lỗi "Không thể hoàn tất khi đang lái xe" bằng tiêu đề template cố định.
+- Hiển thị mức độ nhạy (Level x) trực tiếp trên ô chế độ đang chọn thay vì trên tiêu đề màn hình.
 ```
 
 ---
 
 ## 2. Bản chi tiết (Changelog & Hướng dẫn kỹ thuật)
 
-### Phiên bản 2.1.1:
+### Phiên bản 2.1.2:
+1. **Tiêu đề cố định khắc phục lỗi lái xe:** Chuyển tiêu đề màn hình Android Auto thành chuỗi cố định `"AA Power Booster"` khi đã kết nối. Việc này ngăn chặn Android Auto đếm mỗi lần đổi chế độ hoặc thay đổi mức độ nhạy (+/-) là một "bước màn hình" mới (new step), giúp loại bỏ hoàn toàn lỗi khóa màn hình "Không thể hoàn tất việc này khi đang lái xe" (Do hạn mức 5 bước tối đa của hệ thống khi xe di chuyển).
+2. **Hiển thị mức độ nhạy trực quan:** Thay vì hiển thị mức độ nhạy trên tiêu đề màn hình, mức độ nhạy của chế độ đang chọn sẽ được hiển thị trực tiếp làm tiêu đề của ô chế độ đó (ví dụ: hiển thị `"Level 5"` thay cho chữ `"Sport"` khi chế độ Sport đang kích hoạt). Chế độ Normal vẫn hiển thị là `"Normal"`.
+
+### Đã có từ 2.1.1:
 1. **Sửa lỗi Android Auto chặn khi đang lái:** khi bấm dồn dập (đổi chế độ/cấp/P/R liên tục), Android Auto có thể bung cảnh báo "Không thể hoàn tất việc này khi đang lái xe" do app đẩy template quá dày, vượt hạn mức của hệ thống. Đã khắc phục bằng cách: (a) gộp các lần vẽ lại thành tối đa một lần mỗi 300ms, và (b) luôn giữ cùng một loại bố cục lưới (không đổi sang màn thông báo), nên mỗi lần vẽ được tính là "làm mới" miễn phí — không còn chạm hạn mức.
 
 ### Đã có từ 2.1.0:

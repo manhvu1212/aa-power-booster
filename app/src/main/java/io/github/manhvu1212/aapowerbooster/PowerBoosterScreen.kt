@@ -202,20 +202,9 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
         // 6th tile: P/R master toggle. Icon shows the active letter filled, the other outlined.
         gridItemList.add(createBoostGridItem())
 
-        // Header shows the current mode + level when connected. (Android Auto's action strip is
-        // capped at 2 buttons, so the level number can't be a 3rd item literally between -/+;
-        // showing it in the title keeps it on the same top bar as the -/+ buttons.)
-        val modeName = when (activeMode) {
-            1 -> "Race"
-            2 -> "Sport"
-            3 -> "City"
-            4 -> "Normal"
-            5 -> "Eco"
-            else -> "?"
-        }
+        // Title remains static when connected to avoid template quota step limit triggers.
         val headerTitle = when (connectionState) {
-            BleManager.ConnectionState.CONNECTED ->
-                if (activeMode == 4) modeName else "$modeName · Level $activeLevel"
+            BleManager.ConnectionState.CONNECTED -> "AA Power Booster"
             BleManager.ConnectionState.CONNECTING -> "Connecting to throttle..."
             BleManager.ConnectionState.DISCONNECTED -> "Throttle not connected / device busy"
         }
@@ -313,11 +302,12 @@ class PowerBoosterScreen(carContext: CarContext) : Screen(carContext) {
             IconCompat.createWithResource(carContext, iconRes)
         ).build()
 
-        // The Car App Library requires every grid item to have a title, so we can't make tiles
-        // truly icon-only — keep just the short mode name. No level text below the icon
-        // (the current level is shown in the header title instead).
+        // If this mode is active, display the level directly as the grid item's title (except Normal).
+        val isActive = connectionState == BleManager.ConnectionState.CONNECTED && activeMode == modeId
+        val displayTitle = if (isActive && modeId != 4) "Level $activeLevel" else name
+
         return GridItem.Builder()
-            .setTitle(name)
+            .setTitle(displayTitle)
             .setImage(icon, GridItem.IMAGE_TYPE_ICON)
             .setOnClickListener {
                 if (connectionState == BleManager.ConnectionState.CONNECTED) {

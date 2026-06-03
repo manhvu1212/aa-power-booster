@@ -1,17 +1,21 @@
-# Release Notes - AA Power Booster v2.1.1
+# Release Notes - AA Power Booster v2.1.2
 
 ## 1. Short version (for Google Play Console - under 500 characters)
 ```text
-AA Power Booster v2.1.1 release (io.github.manhvu1212.aapowerbooster):
-- Fixed the "Can't complete this action while driving" warning on Android Auto during rapid use.
-- More stable car UI — no longer blocked when tapping quickly.
+AA Power Booster v2.1.2 release (io.github.manhvu1212.aapowerbooster):
+- Completely resolved the "Can't complete this action while driving" warning with a static template title.
+- Display the active sensitivity level (Level x) directly on the selected mode tile instead of the header.
 ```
 
 ---
 
 ## 2. Detailed version (Changelog & technical notes)
 
-### Version 2.1.1:
+### Version 2.1.2:
+1. **Static title to resolve driving restrictions:** Changed the Android Auto screen header title to a static string `"AA Power Booster"` when connected. This prevents the host from treating mode/level updates as new steps, completely eliminating the "Can't complete this action while driving" lock (triggered by the host's 5-step task limit when the vehicle is in motion).
+2. **Intuitive level display:** Instead of showing the level in the header title, the active level is now displayed directly as the title of the selected mode's tile (e.g., showing `"Level 5"` instead of `"Sport"` when Sport is active). Normal mode continues to display `"Normal"`.
+
+### Since 2.1.1:
 1. **Fixed Android Auto blocking while driving:** rapid taps (quickly switching mode/level/P/R) could make Android Auto show "Can't complete this action while driving" because the app pushed templates too frequently and exceeded the host's quota. Fixed by (a) coalescing redraws to at most one every 300ms, and (b) always keeping the same grid layout type (never switching to a message screen), so each redraw counts as a free "refresh" and never hits the quota.
 
 ### Since 2.1.0:
